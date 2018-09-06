@@ -112,14 +112,14 @@ def content_search(topic, key_words = [],excludewords=[],blacklist=[]):
         print topic['author']['uid']
         flag = False
 
-#   if flag == False:
-#       print topic['title']
+    if flag == False:
+        print topic['title']
 
     if u'不是自如' in topic['content']:
         flag = True
 
     if flag==True:
-        return ['\n',topic['created'],'\n',topic['title'],'\n',topic['share_url']]
+        return ['\n',topic['created']+topic['author']['name'],'\n',topic['title'],'\n',topic['share_url']]
     else:
         return
 # 遍历所有在topics 中的topic， 找到含有关键词列表keywords 的所有topic 并返回
@@ -155,7 +155,7 @@ def recovery_sendedurls():
         if strs is not None :
             for i in strs:
                 sended_dict[i] = ''
-#   print sended_dict.keys()
+    print sended_dict.keys()
 
 # 此函数为监控的主函数，每隔gap秒对小组列表内的小组发送一次请求，
 # 如果返回结果中不含有满足要求topic， 即len(f_houses)=0 则不发送邮件
@@ -169,7 +169,7 @@ def topic_monitor(gap = 400,keywords = [],excludewords=[],blacklist=[],groupids 
         f_houses = douban_houses+five8_houses
         if len(f_houses)>0:
             list2send=(''.join([''.join(f) for f in f_houses])).encode('utf-8')
-            print "发送完成请查收邮件,五分钟后进行下一次抓取,请不要关闭窗口".encode('GBK')
+            print list2send
             with open("result.txt", "a") as fo:
                 fo.write(list2send)
             send_mail([mailto_list], 'For your information, House!',list2send)
@@ -204,8 +204,11 @@ def get_58_url(keywords=[],base_url=''):
             if u'short' in url:
                 continue
             for k in keywords:
-                if k.decode('utf-8') in r.text:
-                    result.append([item.find_parent().find(class_='sendTime').text.replace(' ',''),r.text.replace(' ','').replace('|',' '),'\n',url])
+                s = ''.join([p.text for p in item.findAll('p')]).replace(' ','')
+                s2 = item.find_parent().find(class_='sendTime').text.replace(' ','')
+                if k.decode('utf-8') in s and u'小时' in s2:
+                    print s,s2,r.text.replace(' ','').replace('|',' '),url,'\n'
+                    result.append([s2,'\n',r.text.replace(' ','').replace('|',' '),'\n',url])
                     break
         print('Page', start_page, 'OK')
         if start_page == 20:
@@ -215,7 +218,6 @@ def get_58_url(keywords=[],base_url=''):
     return result
 
 def deal_parameters(**kwargs):
-    print ('\n')
     configData = {'keywords':'','excludewords':'','groupids':'','blacklist':''}
     if os.path.exists('config.json'):
         with open('config.json') as json_file:
@@ -223,11 +225,11 @@ def deal_parameters(**kwargs):
 
     for k in kwargs.keys():
         if len(kwargs[k]) > 0:
-            configData[k] = kwargs[k].decode('GBK').encode('utf-8').replace('，',',').replace('\n','').split(',')
+            configData[k] = kwargs[k].replace('，',',').replace('\n','').split(',')
         else:
             kwargs[k] = ''.join([c+',' for c in configData[k]])
 
-        print k+" ",kwargs[k]
+        print k+"：",kwargs[k]
 
     f = open('./config.json', 'w')
     json.dump(configData, f)
@@ -235,7 +237,6 @@ def deal_parameters(**kwargs):
     return configData
 
 def dealmailinfo(**kwargs):
-    print ('\n')
     mailinfo = {'mailto_list':'','mail_host':'','mail_user':'','mail_pass':''}
     if os.path.exists('mail.json'):
         with open('mail.json') as json_file:
@@ -245,7 +246,7 @@ def dealmailinfo(**kwargs):
             mailinfo[k] = kwargs[k]
         else:
             kwargs[k] = mailinfo[k]
-        print k+" ",kwargs[k]
+        print k+"：",kwargs[k]
 
     f = open('./mail.json', 'w')
     json.dump(mailinfo, f)
@@ -254,10 +255,10 @@ def dealmailinfo(**kwargs):
     return mailinfo
 
 if __name__ == '__main__':
-    mailto_list = raw_input("接受邮箱:".encode('GBK'))
-    mail_user = raw_input("发送邮箱:".encode('GBK'))
-    mail_host = raw_input("发送邮箱的smtp服务器地址:".encode('GBK'))
-    mail_pass = raw_input("发送邮箱的密码:".encode('GBK'))
+    mailto_list = raw_input("接受邮箱:")
+    mail_user = raw_input("发送邮箱:")
+    mail_host = raw_input("发送邮箱的smtp服务器地址:")
+    mail_pass = raw_input("发送邮箱的密码:")
 
     mail_params = dealmailinfo(mailto_list=mailto_list,mail_host=mail_host,mail_user=mail_user,mail_pass=mail_pass)
 
@@ -266,15 +267,15 @@ if __name__ == '__main__':
     mail_host = mail_params['mail_host']
     mail_pass = mail_params['mail_pass']
 
-    url58=raw_input("请输入58同城网址(必填):".encode('GBK'))
+    url58=raw_input("请输入58同城网址(必填):")
     if len(url58)==0:
         # quit()
         url58 = 'sz.58.com/nanshan'
 
-    groupids = raw_input("豆瓣小组id(逗号分隔,留空则默认读取上次输入):".encode('GBK'))
-    keywords = raw_input("输入需要的关键词(比如'美丽花园'，逗号分隔,留空则默认读取上次输入):".encode('GBK'))
-    excludewords = raw_input("过滤关键词(比如'床位'，逗号分隔,留空则默认读取上次输入):".encode('GBK'))
-    blacklist = raw_input("豆瓣发帖人id黑名单(逗号分隔,留空则默认读取上次输入):".encode('GBK'))
+    groupids = raw_input("豆瓣小组id(逗号分隔,留空则默认读取上次输入):")
+    keywords = raw_input("输入需要的关键词(比如'美丽花园'，逗号分隔,留空则默认读取上次输入):")
+    excludewords = raw_input("过滤关键词(比如'床位'，逗号分隔,留空则默认读取上次输入):")
+    blacklist = raw_input("豆瓣发帖人id黑名单(逗号分隔,留空则默认读取上次输入):")
 
     deal_params = deal_parameters(keywords=keywords,excludewords=excludewords,groupids=groupids,blacklist=blacklist)
 
